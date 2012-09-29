@@ -1,34 +1,15 @@
 
 public class Tank {
 
-	private String id;
-	private String callsign;
-	private String status;
-	private int shotsAvailable;
-	private float timeToReload;
-	private String flag;
-	private float x;
-	private float y;
-	private float angle;
-	private float vx;
-	private float vy;
-	private float angvel;
+	protected String callsign;
+	protected String status;
+	protected String flag;
+	protected float x;
+	protected float y;
+	protected float angle;
 	
 	public Tank() {
 		
-	}
-	
-	public Tank(String id, String callsign) {
-		this.id = id;
-		this.callsign = callsign;
-	}
-
-	public String getId() {
-		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
 	}
 
 	public String getCallsign() {
@@ -38,7 +19,7 @@ public class Tank {
 	public void setCallsign(String callsign) {
 		this.callsign = callsign;
 	}
-
+	
 	public String getStatus() {
 		return status;
 	}
@@ -50,23 +31,7 @@ public class Tank {
 	public boolean isAlive() {
 		return "alive".equalsIgnoreCase(status);
 	}
-
-	public int getShotsAvailable() {
-		return shotsAvailable;
-	}
-
-	public void setShotsAvailable(int shotsAvailable) {
-		this.shotsAvailable = shotsAvailable;
-	}
-
-	public float getTimeToReload() {
-		return timeToReload;
-	}
-
-	public void setTimeToReload(float timeToReload) {
-		this.timeToReload = timeToReload;
-	}
-
+	
 	public String getFlag() {
 		return flag;
 	}
@@ -99,27 +64,4 @@ public class Tank {
 		this.angle = angle;
 	}
 
-	public float getVx() {
-		return vx;
-	}
-
-	public void setVx(float vx) {
-		this.vx = vx;
-	}
-
-	public float getVy() {
-		return vy;
-	}
-
-	public void setVy(float vy) {
-		this.vy = vy;
-	}
-
-	public float getAngvel() {
-		return angvel;
-	}
-
-	public void setAngvel(float angvel) {
-		this.angvel = angvel;
-	}
 }

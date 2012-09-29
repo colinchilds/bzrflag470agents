@@ -1,4 +1,3 @@
-import java.awt.Point;
 import java.awt.geom.Point2D;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,7 +20,8 @@ public class BZRController {
 	ArrayList<Obstacle> obstacles = new ArrayList<Obstacle>();
 	ArrayList<Flag> flags = new ArrayList<Flag>();
 	ArrayList<Shot> shots = new ArrayList<Shot>();
-	ArrayList<Tank> myTanks = new ArrayList<Tank>();
+	ArrayList<MyTank> myTanks = new ArrayList<MyTank>();
+	ArrayList<OtherTank> otherTanks = new ArrayList<OtherTank>();
 	
 	//Connects the agent to the host and given port
 	public void connect(String host, int port) throws SocketException, IOException {
@@ -216,10 +216,10 @@ public class BZRController {
 		write("mytanks");
 		readAck();
 		ArrayList<String> list = readList();
-		shots.clear();
+		myTanks.clear();
 		for(String s : list) {
 			String[] arr = s.split("\\s+");
-			Tank t = new Tank(arr[1], arr[2]);
+			MyTank t = new MyTank(arr[1], arr[2]);
 			t.setStatus(arr[3]);
 			t.setShotsAvailable(Integer.parseInt(arr[4]));
 			t.setTimeToReload(Float.parseFloat(arr[5]));
@@ -233,6 +233,27 @@ public class BZRController {
 			t.setVy(Float.parseFloat(arr[11]));
 			t.setAngvel(Float.parseFloat(arr[12]));
 			myTanks.add(t);
+		}
+	}
+	
+	public void updateOtherTanks() throws Exception {
+		write("othertanks");
+		readAck();
+		ArrayList<String> list = readList();
+		otherTanks.clear();
+		for(String s : list) {
+			String[] arr = s.split("\\s+");
+			OtherTank t = new OtherTank();
+			t.setCallsign(arr[1]);
+			t.setColor(arr[2]);
+			t.setStatus(arr[3]);
+			if(!"-".equals(arr[4])) {
+				t.setFlag(arr[4]);
+			}
+			t.setX(Float.parseFloat(arr[5]));
+			t.setY(Float.parseFloat(arr[6]));
+			t.setAngle(Float.parseFloat(arr[7]));
+			otherTanks.add(t);
 		}
 	}
 	
