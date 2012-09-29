@@ -13,6 +13,9 @@ public class TestAgent {
 		bzrc.updateTeams();
 		bzrc.updateObstacles();
 		bzrc.updateBases();
+		bzrc.updateFlags();
+		bzrc.updateShots();
+		bzrc.updateMyTanks();
 		
 		bzrc.disconnect();
 	}

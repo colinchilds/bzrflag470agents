@@ -19,6 +19,9 @@ public class BZRController {
 	//Game values
 	HashMap<String, Team> teams = new HashMap<String, Team>();
 	ArrayList<Obstacle> obstacles = new ArrayList<Obstacle>();
+	ArrayList<Flag> flags = new ArrayList<Flag>();
+	ArrayList<Shot> shots = new ArrayList<Shot>();
+	ArrayList<Tank> myTanks = new ArrayList<Tank>();
 	
 	//Connects the agent to the host and given port
 	public void connect(String host, int port) throws SocketException, IOException {
@@ -176,6 +179,60 @@ public class BZRController {
 						Float.parseFloat(arr[i + 1]));
 				team.addCorner(p);
 			}
+		}
+	}
+	
+	public void updateFlags() throws Exception {
+		write("flags");
+		readAck();
+		ArrayList<String> list = readList();
+		flags.clear();
+		for(String s : list) {
+			String[] arr = s.split(" ");
+			String controllingTeam = arr[2];
+			if("none".equalsIgnoreCase(controllingTeam)) {
+				controllingTeam = null;
+			}
+			Flag f = new Flag(arr[1], controllingTeam,
+					new Point2D.Float(Float.parseFloat(arr[3]), Float.parseFloat(arr[4])));
+			flags.add(f);
+		}
+	}
+	
+	public void updateShots() throws Exception {
+		write("shots");
+		readAck();
+		ArrayList<String> list = readList();
+		shots.clear();
+		for(String s : list) {
+			String[] arr = s.split(" ");
+			Shot shot = new Shot(Float.parseFloat(arr[1]), Float.parseFloat(arr[2]),
+					Float.parseFloat(arr[3]), Float.parseFloat(arr[4]));
+			shots.add(shot);
+		}
+	}
+	
+	public void updateMyTanks() throws Exception {
+		write("mytanks");
+		readAck();
+		ArrayList<String> list = readList();
+		shots.clear();
+		for(String s : list) {
+			String[] arr = s.split("\\s+");
+			Tank t = new Tank(arr[1], arr[2]);
+			t.setStatus(arr[3]);
+			t.setShotsAvailable(Integer.parseInt(arr[4]));
+			t.setTimeToReload(Float.parseFloat(arr[5]));
+			if(!"-".equals(arr[6])) {
+				t.setFlag(arr[6]);
+			}
+			t.setX(Float.parseFloat(arr[7]));
+			t.setY(Float.parseFloat(arr[8]));
+			t.setAngle(Float.parseFloat(arr[9]));
+			t.setVx(Float.parseFloat(arr[10]));
+			t.setVy(Float.parseFloat(arr[11]));
+			t.setAngvel(Float.parseFloat(arr[12]));
+			myTanks.add(t);
 		}
 	}
 	
