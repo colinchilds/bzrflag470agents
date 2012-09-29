@@ -1,14 +1,12 @@
 
-public class TestAgent {
+public class TestAgent extends Agent {
 
-	private static BZRController bzrc;
-	
 	public static void main(String[] args) throws Exception {
-		bzrc = new BZRController();
-		bzrc.connect("localhost", 50185);
-		while(!bzrc.readLine().startsWith("bzrobots")); //wait for response
-		bzrc.write("agent 1");
-		
+		connect(args);
+		begin();
+	}
+
+	private static void begin() throws Exception {
 		bzrc.shoot(0);
 		bzrc.updateTeams();
 		bzrc.updateObstacles();
