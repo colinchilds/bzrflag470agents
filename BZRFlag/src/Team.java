@@ -1,3 +1,4 @@
+import java.awt.Polygon;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 
@@ -47,5 +48,24 @@ public class Team {
 	
 	public void resetBaseCorners() {
 		baseCorners.clear();
+	}
+	
+	//TODO: Make this better. Could give inaccurate results
+	public Point2D.Float getBaseCenter() {
+		if(baseCorners.size() == 0) {
+			System.out.println("No base points found! ERROR!");
+			return null;
+		}
+		
+		float sumx = 0;
+		float sumy = 0;
+		
+		for(int i = 0; i < baseCorners.size(); i++) {
+			Point2D.Float p = baseCorners.get(i);
+			sumx += p.x;
+			sumy += p.y;
+		}
+		
+		return new Point2D.Float(sumx/baseCorners.size(), sumy/baseCorners.size());
 	}
 }

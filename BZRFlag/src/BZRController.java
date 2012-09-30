@@ -21,6 +21,7 @@ public class BZRController {
 	ArrayList<Flag> flags = new ArrayList<Flag>();
 	ArrayList<Shot> shots = new ArrayList<Shot>();
 	HashMap<String, MyTank> myTanks = new HashMap<String, MyTank>();
+	HashMap<String, String> constants = new HashMap<String, String>();
 	ArrayList<OtherTank> otherTanks = new ArrayList<OtherTank>();
 	
 	//Connects the agent to the host and given port
@@ -253,6 +254,17 @@ public class BZRController {
 			t.setY(Float.parseFloat(arr[6]));
 			t.setAngle(Float.parseFloat(arr[7]));
 			otherTanks.add(t);
+		}
+	}
+	
+	public void updateConstants() throws Exception {
+		write("constants");
+		readAck();
+		ArrayList<String> list = readList();
+		constants.clear();
+		for(String s : list) {
+			String[] arr = s.split("\\s+");
+			constants.put(arr[1], arr[2]);
 		}
 	}
 	
