@@ -13,7 +13,7 @@ public class DumbAgent extends Agent {
 		bzrc.updateAll();
 		
 		Timer moveTimer = new Timer();
-		moveTimer.schedule(new MoveTask(bzrc, 4), 0, 5000);
+		moveTimer.schedule(new MoveTask(bzrc, bzrc.myTanks.get(4)), 0, 5000);
 	}
 }
 

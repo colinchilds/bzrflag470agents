@@ -7,7 +7,7 @@ public class TestAgent extends Agent {
 	}
 
 	private static void begin() throws Exception {
-		bzrc.shoot(0);
+		bzrc.shoot("0");
 		bzrc.updateTeams();
 		bzrc.updateObstacles();
 		bzrc.updateBases();
