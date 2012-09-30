@@ -20,7 +20,7 @@ public class BZRController {
 	ArrayList<Obstacle> obstacles = new ArrayList<Obstacle>();
 	ArrayList<Flag> flags = new ArrayList<Flag>();
 	ArrayList<Shot> shots = new ArrayList<Shot>();
-	ArrayList<MyTank> myTanks = new ArrayList<MyTank>();
+	HashMap<String, MyTank> myTanks = new HashMap<String, MyTank>();
 	ArrayList<OtherTank> otherTanks = new ArrayList<OtherTank>();
 	
 	//Connects the agent to the host and given port
@@ -231,7 +231,7 @@ public class BZRController {
 			t.setVx(Float.parseFloat(arr[10]));
 			t.setVy(Float.parseFloat(arr[11]));
 			t.setAngvel(Float.parseFloat(arr[12]));
-			myTanks.add(t);
+			myTanks.put(t.getId(), t);
 		}
 	}
 	
