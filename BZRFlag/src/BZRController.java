@@ -104,24 +104,24 @@ public class BZRController {
 	//********************************************************************
 	//BOT COMMANDS
 	//********************************************************************
-	public boolean shoot(int bot) throws Exception {
-		write("shoot " + bot);
+	public boolean shoot(String id) throws Exception {
+		write("shoot " + id);
 		readAck();
 		return readBool();
 	}
 	
-	public boolean speed(int bot, float amount) throws Exception {
-		write("speed " + bot + " " + amount);
+	public boolean speed(String id, float amount) throws Exception {
+		write("speed " + id + " " + amount);
 		readAck();
 		return readBool();
 	}
 	
-	public boolean speed(int bot) throws Exception {
-		return speed(bot, 1);
+	public boolean speed(String id) throws Exception {
+		return speed(id);
 	}
 	
-	public boolean angvel(int bot, float amount) throws Exception {
-		write("angvel " + bot + " " + amount);
+	public boolean angvel(String id, float amount) throws Exception {
+		write("angvel " + id + " " + amount);
 		readAck();
 		return readBool();
 	}
@@ -255,6 +255,16 @@ public class BZRController {
 			t.setAngle(Float.parseFloat(arr[7]));
 			otherTanks.add(t);
 		}
+	}
+	
+	public void updateAll() throws Exception {
+		updateTeams();
+		updateObstacles();
+		updateBases();
+		updateFlags();
+		updateShots();
+		updateMyTanks();
+		updateOtherTanks();
 	}
 	
 }
