@@ -63,7 +63,6 @@ public class BZRController {
 		if(response.startsWith("ok")) {
 			return true;
 		} else {
-			System.err.println("FAILURE: " + response);
 			return false;
 		}
 	}
@@ -117,7 +116,7 @@ public class BZRController {
 	}
 	
 	public boolean speed(String id) throws Exception {
-		return speed(id);
+		return speed(id, 1);
 	}
 	
 	public boolean angvel(String id, float amount) throws Exception {
