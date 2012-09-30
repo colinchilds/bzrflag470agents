@@ -9,9 +9,9 @@ public abstract class Agent {
 	protected static void connect(String args[]) throws SocketException, IOException {
 		String host = "localhost";
 		int port = 50185;
-		if(args.length == 3) {
-			host = args[1];
-			port = Integer.parseInt(args[2]);
+		if(args.length == 2) {
+			host = args[0];
+			port = Integer.parseInt(args[1]);
 		}
 		
 		//Connect to server
