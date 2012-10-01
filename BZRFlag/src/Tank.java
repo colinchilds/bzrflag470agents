@@ -1,3 +1,5 @@
+import java.awt.geom.Point2D;
+
 
 public class Tank {
 
@@ -62,6 +64,10 @@ public class Tank {
 
 	public void setAngle(float angle) {
 		this.angle = angle;
+	}
+	
+	public Point2D.Float getPosition() {
+		return new Point2D.Float(x, y);
 	}
 
 }

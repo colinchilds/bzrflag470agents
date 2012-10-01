@@ -25,12 +25,11 @@ public class ReactiveAgent extends Agent {
 			
 			for(int j = 0; j < bzrc.myTanks.size(); j++) {
 				MyTank t = bzrc.myTanks.get(j+"");
-				Point2D.Float goal;
+				Point2D.Float goal = null;
 				if(t.flag != null) {
 					goal = bzrc.teams.get(ourColor).getBaseCenter();
 				} else {
 					double minDist = Double.MAX_VALUE;
-					Flag minDistFlag = null;
 					for(int i = 0; i < bzrc.flags.size(); i++) {
 						Flag f = bzrc.flags.get(i);
 						
@@ -42,15 +41,28 @@ public class ReactiveAgent extends Agent {
 						double dist = f.getPosition().distance(t.getX(), t.getY());
 						if(dist < minDist) {
 							minDist = dist;
-							minDistFlag = f;
+							goal = f.getPosition();
 						}
 					}
 					
-					if(minDistFlag == null) {
-						commands.add(new Command(Command.SPEED, t.getId(), 0));
-						continue;
+					if(goal == null) {
+						for(int i = 0; i < bzrc.otherTanks.size(); i++) {
+							OtherTank o = bzrc.otherTanks.get(i);
+							
+							double dist = o.getPosition().distance(t.getX(), t.getY());
+							if(dist < minDist) {
+								minDist = dist;
+								goal = o.getPosition();
+							}
+						}
 					}
-					goal = minDistFlag.getPosition();
+					
+					//if all else fails... go back home for now.
+					//this will probably need to change when the entire field is not visible
+					//ie. go explore somewhere
+					if(goal == null) {
+						goal = bzrc.teams.get(ourColor).getBaseCenter();
+					}
 				}
 				
 				double distance = goal.distance(t.getX(), t.getY());
@@ -63,7 +75,7 @@ public class ReactiveAgent extends Agent {
 					double deltaY = (distance - radius) * Math.sin(angle);
 					
 					//determine effect of obstacles on path
-					int obstacleRadius = 150;
+					int obstacleRadius = 100;
 					for(int i = 0; i < bzrc.obstacles.size(); i++) {
 						Obstacle o = bzrc.obstacles.get(i);
 						for(int k = 0; k < o.getCorners().size(); k++) {
@@ -71,8 +83,8 @@ public class ReactiveAgent extends Agent {
 							double obDist = p.distance(t.x, t.y);
 							if(obDist < obstacleRadius) {
 								double objAngle = Math.atan2(p.y - t.y, p.x - t.x);
-								deltaX += .5 * ((obDist - obstacleRadius) * Math.cos(objAngle));
-								deltaY += .5 * ((obDist - obstacleRadius) * Math.sin(objAngle));
+								deltaX += 3 * ((obDist - obstacleRadius) * Math.cos(objAngle));
+								deltaY += 3 * ((obDist - obstacleRadius) * Math.sin(objAngle));
 							}
 						}
 					}
@@ -90,18 +102,18 @@ public class ReactiveAgent extends Agent {
 					double angleDifference = Angle.toDegrees(Angle.normalize(t.getAngle() - Math.atan2(deltaY, deltaX)));
 					
 					//TODO: adjust to not move until a certain degree
-					if(Math.abs(angleDifference) > 45) {
+					if(Math.abs(angleDifference) > 60) {
 						//bzrc.speed(t.getId(), .1f);
 						commands.add(new Command(Command.SPEED, t.getId(), .1f));
 					} else {
 						//float speed = (float) (Math.min(3/Math.abs(angleDifference), Math.min(distance/20, 1)));
 						//bzrc.speed(t.getId(), (float)Math.min(distance/20, 1));
-						commands.add(new Command(Command.SPEED, t.getId(), (float)Math.min(distance/20, 1)));
+						commands.add(new Command(Command.SPEED, t.getId(), (float)Math.min(distance/30, 1)));
 					}
 					
 					//bzrc.angvel(t.getId(), ((float)-(angleDifference/180)));
 					commands.add(new Command(Command.ANGVEL, t.getId(), (float)-(angleDifference/180)));
-					if(distance < 75 || t.flag != null) {
+					if(distance < 150 || t.flag != null) {
 						//bzrc.shoot(t.getId());
 						commands.add(new Command(Command.SHOOT, t.getId()));
 					}
