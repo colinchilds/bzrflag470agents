@@ -33,8 +33,9 @@ public class ReactiveAgent extends Agent {
 					for(int i = 0; i < bzrc.flags.size(); i++) {
 						Flag f = bzrc.flags.get(i);
 						
-						//If it is our flag, don't go for it
-						if(f.getColor().equals(ourColor) || ourColor.equals(f.getPossessingColor())) {
+						//If it is our flag in our possession,
+						//or another flag in our possession, don't go for it
+						if((f.getColor().equals(ourColor) && f.getPossessingColor() == null) || ourColor.equals(f.getPossessingColor())) {
 							continue;
 						}
 						
@@ -75,7 +76,7 @@ public class ReactiveAgent extends Agent {
 					double deltaY = (distance - radius) * Math.sin(angle);
 					
 					//determine effect of obstacles on path
-					int obstacleRadius = 100;
+					int obstacleRadius = 50;
 					for(int i = 0; i < bzrc.obstacles.size(); i++) {
 						Obstacle o = bzrc.obstacles.get(i);
 						for(int k = 0; k < o.getCorners().size(); k++) {
@@ -83,8 +84,8 @@ public class ReactiveAgent extends Agent {
 							double obDist = p.distance(t.x, t.y);
 							if(obDist < obstacleRadius) {
 								double objAngle = Math.atan2(p.y - t.y, p.x - t.x);
-								deltaX += 3 * ((obDist - obstacleRadius) * Math.cos(objAngle));
-								deltaY += 3 * ((obDist - obstacleRadius) * Math.sin(objAngle));
+								deltaX += 2 * ((obDist - obstacleRadius) * Math.cos(objAngle));
+								deltaY += 2 * ((obDist - obstacleRadius) * Math.sin(objAngle));
 							}
 						}
 					}
@@ -108,7 +109,7 @@ public class ReactiveAgent extends Agent {
 					} else {
 						//float speed = (float) (Math.min(3/Math.abs(angleDifference), Math.min(distance/20, 1)));
 						//bzrc.speed(t.getId(), (float)Math.min(distance/20, 1));
-						commands.add(new Command(Command.SPEED, t.getId(), (float)Math.min(distance/30, 1)));
+						commands.add(new Command(Command.SPEED, t.getId(), (float)Math.min(distance/75, 1)));
 					}
 					
 					//bzrc.angvel(t.getId(), ((float)-(angleDifference/180)));

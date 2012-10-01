@@ -44,7 +44,13 @@ public class BZRController {
 		String result = "";
 		try {
 			//Wait for a response.
-			while(!in.ready());
+			int i = 0;
+			while(!in.ready()) {
+				//terrible hack for continuing in case of read error thats was freezing agent
+				if(i++ > 10000000) {
+					break;
+				}
+			}
 			return in.readLine();
 		} catch(IOException e) {
 			System.err.println("Problem reading from buffer:");
