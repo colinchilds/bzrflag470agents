@@ -1,4 +1,8 @@
 import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Date;
+
+import com.vividsolutions.jts.algorithm.Angle;
 
 
 public class ReactiveAgent extends Agent {
@@ -14,7 +18,10 @@ public class ReactiveAgent extends Agent {
 		String ourColor = bzrc.constants.get("team");
 		
 		while(true) {
+			Date start = new Date();
 			bzrc.updateAll();
+			
+			ArrayList<Command> commands = new ArrayList<Command>();
 			
 			for(int j = 0; j < bzrc.myTanks.size(); j++) {
 				MyTank t = bzrc.myTanks.get(j+"");
@@ -40,7 +47,7 @@ public class ReactiveAgent extends Agent {
 					}
 					
 					if(minDistFlag == null) {
-						bzrc.speed(t.getId(), 0);
+						commands.add(new Command(Command.SPEED, t.getId(), 0));
 						continue;
 					}
 					goal = minDistFlag.getPosition();
@@ -52,29 +59,58 @@ public class ReactiveAgent extends Agent {
 				
 				if(distance > radius) {
 
-					double deltaX = (distance - radius)*Math.cos(angle);
-					double deltaY = (distance - radius)*Math.sin(angle);
-					double deltaAngle = toDegrees(Math.atan2(deltaY, deltaX));
-					double tankAngle = toDegrees(t.getAngle());
-					double angleDifference = tankAngle - deltaAngle;
-					if(angleDifference > 180) {
-						angleDifference = (tankAngle - 360) - deltaAngle;
-					} if(angleDifference == 0) {
-						angleDifference = .0001;
+					double deltaX = (distance - radius) * Math.cos(angle);
+					double deltaY = (distance - radius) * Math.sin(angle);
+					
+					//determine effect of obstacles on path
+					int obstacleRadius = 150;
+					for(int i = 0; i < bzrc.obstacles.size(); i++) {
+						Obstacle o = bzrc.obstacles.get(i);
+						for(int k = 0; k < o.getCorners().size(); k++) {
+							Point2D.Float p = o.getCorners().get(k);
+							double obDist = p.distance(t.x, t.y);
+							if(obDist < obstacleRadius) {
+								double objAngle = Math.atan2(p.y - t.y, p.x - t.x);
+								deltaX += .5 * ((obDist - obstacleRadius) * Math.cos(objAngle));
+								deltaY += .5 * ((obDist - obstacleRadius) * Math.sin(objAngle));
+							}
+						}
 					}
 					
 					
-					//TODO: adjust to not move until a certain degree
-					float speed = (float) (Math.min(8/Math.abs(angleDifference), Math.min(distance/20, 1)));
-					bzrc.speed(t.getId(), speed);
+//					double deltaAngle = toDegrees(Math.atan2(deltaY, deltaX));
+//					double tankAngle = toDegrees(t.getAngle());
+//					double angleDifference = tankAngle - deltaAngle;
+//					if(angleDifference > 180) {
+//						angleDifference = (tankAngle - 360) - deltaAngle;
+//					} if(angleDifference == 0) {
+//						angleDifference = .0001;
+//					}
 					
-					bzrc.angvel(t.getId(), ((float)-(angleDifference/180)));
+					double angleDifference = Angle.toDegrees(Angle.normalize(t.getAngle() - Math.atan2(deltaY, deltaX)));
+					
+					//TODO: adjust to not move until a certain degree
+					if(Math.abs(angleDifference) > 45) {
+						//bzrc.speed(t.getId(), .1f);
+						commands.add(new Command(Command.SPEED, t.getId(), .1f));
+					} else {
+						//float speed = (float) (Math.min(3/Math.abs(angleDifference), Math.min(distance/20, 1)));
+						//bzrc.speed(t.getId(), (float)Math.min(distance/20, 1));
+						commands.add(new Command(Command.SPEED, t.getId(), (float)Math.min(distance/20, 1)));
+					}
+					
+					//bzrc.angvel(t.getId(), ((float)-(angleDifference/180)));
+					commands.add(new Command(Command.ANGVEL, t.getId(), (float)-(angleDifference/180)));
 					if(distance < 75 || t.flag != null) {
-						bzrc.shoot(t.getId());
+						//bzrc.shoot(t.getId());
+						commands.add(new Command(Command.SHOOT, t.getId()));
 					}
 				}
 			}
 			
+			bzrc.doBulkCommands(commands);
+			Date end = new Date();
+			System.out.println("Loop time: " + (end.getTime() - start.getTime()));
 		}
 	}
 	

@@ -126,6 +126,35 @@ public class BZRController {
 		return readBool();
 	}
 	
+	//Bulk commands - helps with speed since waiting on the server response
+	//before issuing a command to a tank is time consuming
+	public boolean doBulkCommands(ArrayList<Command> commands) throws Exception {
+		boolean ret = true;
+		
+		for(int i = 0; i < commands.size(); i++) {
+			Command c = commands.get(i);
+			switch (c.getType()) {
+				case Command.SPEED:
+					write("speed " + c.getTank() + " " + c.getArg1());
+					break;
+				case Command.ANGVEL:
+					write("angvel " + c.getTank() + " " + c.getArg1());
+					break;
+				case Command.SHOOT:
+					write("shoot " + c.getTank());
+					break;
+			}
+		}
+		
+		//now read the responses in bulk
+		for(int i = 0; i < commands.size(); i++) {
+			readAck();
+			ret &= readBool();
+		}
+		
+		return ret;
+	}
+	
 	
 	//********************************************************************
 	//Queries
