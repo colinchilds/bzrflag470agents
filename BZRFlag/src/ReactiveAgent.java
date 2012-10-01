@@ -3,6 +3,14 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import com.vividsolutions.jts.algorithm.Angle;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LinearRing;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.impl.CoordinateArraySequence;
+import com.vividsolutions.jts.operation.distance.DistanceOp;
+import com.vividsolutions.jts.operation.overlay.PolygonBuilder;
 
 
 public class ReactiveAgent extends Agent {
@@ -76,17 +84,47 @@ public class ReactiveAgent extends Agent {
 					double deltaY = (distance - radius) * Math.sin(angle);
 					
 					//determine effect of obstacles on path
-					int obstacleRadius = 50;
+					int obstacleSpread = 50;
 					for(int i = 0; i < bzrc.obstacles.size(); i++) {
 						Obstacle o = bzrc.obstacles.get(i);
-						for(int k = 0; k < o.getCorners().size(); k++) {
-							Point2D.Float p = o.getCorners().get(k);
-							double obDist = p.distance(t.x, t.y);
-							if(obDist < obstacleRadius) {
-								double objAngle = Math.atan2(p.y - t.y, p.x - t.x);
-								deltaX += 2 * ((obDist - obstacleRadius) * Math.cos(objAngle));
-								deltaY += 2 * ((obDist - obstacleRadius) * Math.sin(objAngle));
-							}
+						Coordinate[] coordinates = new Coordinate[o.getCorners().size() + 1];
+						for (int k = 0; k < o.getCorners().size(); k++) {
+							coordinates[k] = new Coordinate(o.getCorners().get(k).getX(), o.getCorners().get(k).getY());
+						}
+						coordinates[o.getCorners().size()] = new Coordinate(o.getCorners().get(0).getX(), o.getCorners().get(0).getY());
+						GeometryFactory fact = new GeometryFactory();
+						LinearRing ring = new GeometryFactory().createLinearRing(coordinates);
+						Polygon poly = new Polygon(ring, null, fact);
+						Coordinate[] tankPositionArray = {new Coordinate(t.getX(), t.getY())};
+						Point tankPoint = new Point(new CoordinateArraySequence(tankPositionArray), fact);
+						double objAngle = Math.atan2(poly.getCentroid().getY() - t.getY(), poly.getCentroid().getX() - t.getX());
+						Coordinate nearestPoint = DistanceOp.closestPoints(poly, tankPoint)[0];
+						double obstacleRadius = Math.sqrt(Math.pow(poly.getCentroid().getX() - nearestPoint.x, 2) +
+														  Math.pow(poly.getCentroid().getY() - nearestPoint.y, 2)); 
+						double obDist = Math.sqrt(Math.pow(poly.getCentroid().getX() - tankPoint.getX(), 2) +
+								  				  Math.pow(poly.getCentroid().getY() - tankPoint.getY(), 2)); 
+						if(obDist < obstacleRadius) {
+							//It should never get into this block
+							deltaX += 2 * ((obDist - obstacleRadius) * Math.cos(objAngle));
+							deltaY += 2 * ((obDist - obstacleRadius) * Math.sin(objAngle));
+						} else if (obstacleRadius <= obDist && obDist <= obstacleSpread + obstacleRadius) {
+							double beta = 10;
+							double gamma = 2;
+							
+							//This gives a repulsive potential field for obstacles
+							double deltaXRepel = - (obstacleSpread + obstacleRadius - obDist) * Math.cos(objAngle);
+							double deltaYRepel = - (obstacleSpread + obstacleRadius - obDist) * Math.sin(objAngle);
+							
+							deltaX += beta * deltaXRepel;
+							deltaY += beta * deltaYRepel;
+							
+							// This is to give a tangential potential field causing the tanks to be slightly
+							// inclined to going in a clockwise direction around an object.
+							double deltaXTan = deltaYRepel;
+							double deltaYTan = - deltaXRepel;
+							
+							deltaX += gamma * deltaXTan;
+							deltaY += gamma * deltaYTan;
 						}
 					}
 					
