@@ -84,7 +84,7 @@ public class ReactiveAgent extends Agent {
 					double deltaY = (distance - radius) * Math.sin(angle);
 					
 					//determine effect of obstacles on path
-					int obstacleSpread = 50;
+					int obstacleSpread = 70;
 					for(int i = 0; i < bzrc.obstacles.size(); i++) {
 						Obstacle o = bzrc.obstacles.get(i);
 						Coordinate[] coordinates = new Coordinate[o.getCorners().size() + 1];
@@ -103,13 +103,9 @@ public class ReactiveAgent extends Agent {
 														  Math.pow(poly.getCentroid().getY() - nearestPoint.y, 2)); 
 						double obDist = Math.sqrt(Math.pow(poly.getCentroid().getX() - tankPoint.getX(), 2) +
 								  				  Math.pow(poly.getCentroid().getY() - tankPoint.getY(), 2)); 
-						if(obDist < obstacleRadius) {
-							//It should never get into this block
-							deltaX += 2 * ((obDist - obstacleRadius) * Math.cos(objAngle));
-							deltaY += 2 * ((obDist - obstacleRadius) * Math.sin(objAngle));
-						} else if (obstacleRadius <= obDist && obDist <= obstacleSpread + obstacleRadius) {
-							double beta = 10;
-							double gamma = 2;
+						if (obstacleRadius <= obDist && obDist <= obstacleSpread + obstacleRadius) {
+							double beta = 8;
+							double gamma = 3;
 							
 							//This gives a repulsive potential field for obstacles
 							double deltaXRepel = - (obstacleSpread + obstacleRadius - obDist) * Math.cos(objAngle);
