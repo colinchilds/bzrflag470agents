@@ -1,3 +1,4 @@
+import java.awt.Point;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
@@ -20,54 +21,90 @@ public class SearchAgent extends Agent {
 	private static float[][] map;
 	
 	private static MapCanvas canvas;
+	private static int worldSize;
+	private static int halfWorldSize;
+	private static float truePositive;
+	private static float trueNegative;
 	
 	public static void main(String[] args) throws Exception {
 		connect(args);
-		
-		JFrame frame = new JFrame("Create a JPanel");
-		canvas = new MapCanvas(800, 800);
-		frame.add(canvas);
-		frame.pack();
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(800, 800);
-		frame.setResizable(false);
-		frame.setVisible(true);
 		
 		begin();
 	}
 
 	private static void begin() throws Exception {
 		bzrc.updateConstants();
-		int worldSize = Integer.parseInt(bzrc.constants.get("worldsize"));
+		worldSize = Integer.parseInt(bzrc.constants.get("worldsize"));
+		halfWorldSize = (worldSize/2);
+		truePositive = Float.parseFloat(bzrc.constants.get("truepositive"));
+		trueNegative = Float.parseFloat(bzrc.constants.get("truenegative"));
+		
+		createMap();
 		
 		map = new float[worldSize][worldSize];
-//		for(int i = 0; i < worldSize; i++) {
-//			for(int j = 0; j < worldSize; j++) {
-//				map[i][j] = (float)Math.random();
-//			}
-//		}
-		
-		while(true) {
-			for(int i = 0; i < worldSize; i++) {
-				for(int j = 0; j < worldSize; j++) {
-					map[i][j] = (float)Math.random();
-				}
+		for(int i = 0; i < worldSize; i++) {
+			for(int j = 0; j < worldSize; j++) {
+				map[i][j] = .5f;
 			}
+		}
+		
+		int iterations = 0;
+		while(true) {
 			Date start = new Date();
 			//bzrc.updateAll();
 			bzrc.updateMyTanks();
 			
 			ArrayList<Command> commands = new ArrayList<Command>();
 			
-			//for(int j = 0; j < bzrc.myTanks.size(); j++) {
-			for(int j = 0; j < 1; j++) {
+			for(int j = 0; j < bzrc.myTanks.size(); j++) {
+			//for(int j = 0; j < 1; j++) {
 				MyTank t = bzrc.myTanks.get(j+"");
 				Occgrid grid = bzrc.getOccgrid(t.getId());
+				updateMap(grid);
 				
 				Point2D.Float goal = null;
-				float x = (float)(Math.random() * (worldSize/2) * (Math.random() > .5 ? -1 : 1));
-				float y = (float)(Math.random() * (worldSize/2) * (Math.random() > .5 ? -1 : 1));
-				goal = new Point2D.Float(x, y);
+				
+				/*
+				boolean goalFound = false;
+				for(int x = worldSize - 10; x > 10 && !goalFound; x--) {
+					for(int y = 10; y < worldSize - 10 && !goalFound; y++) {
+						if(map[x][y] == .5) {
+							goal = new Point2D.Float(x - halfWorldSize, y - halfWorldSize);
+							goalFound = true;
+						}
+					}
+				}
+				*/
+				
+				int tankX = (int)t.getX() + halfWorldSize;
+				int tankY = (int)t.getY() + halfWorldSize;
+				boolean goalFound = false;
+				int direction = 1;
+				for(int i = 1; i < worldSize && !goalFound; i++) {
+					for(int x = 0; x < i && !goalFound; x++) {
+						tankX += direction;
+						if(tankX < worldSize -1  && tankX >= 0
+								&& tankY < worldSize - 1 && tankY >= 0
+								&& map[tankX][tankY] == .5) {
+							goal = new Point2D.Float(tankX - halfWorldSize, tankY - halfWorldSize);
+							goalFound = true;
+						}
+					}
+					for(int y = 0; y < i && !goalFound; y++) {
+						tankY += direction;
+						if(tankX < worldSize -1  && tankX >= 0
+								&& tankY < worldSize - 1 && tankY >= 0
+								&& map[tankX][tankY] == .5) {
+							goal = new Point2D.Float(tankX - halfWorldSize, tankY - halfWorldSize);
+							goalFound = true;
+						}
+					}
+					direction = -1 * direction;
+				}
+				
+				if(goal == null) {
+					break;
+				}
 				
 				double distance = goal.distance(t.getX(), t.getY());
 				double radius = Double.parseDouble(bzrc.constants.get("flagradius"));
@@ -78,48 +115,40 @@ public class SearchAgent extends Agent {
 					double deltaX = (distance - radius) * Math.cos(angle);
 					double deltaY = (distance - radius) * Math.sin(angle);
 					
-					/*
 					//determine effect of obstacles on path
-					int obstacleSpread = 70;
-					for(int i = 0; i < bzrc.obstacles.size(); i++) {
-						Obstacle o = bzrc.obstacles.get(i);
-						Coordinate[] coordinates = new Coordinate[o.getCorners().size() + 1];
-						for (int k = 0; k < o.getCorners().size(); k++) {
-							coordinates[k] = new Coordinate(o.getCorners().get(k).getX(), o.getCorners().get(k).getY());
-						}
-						coordinates[o.getCorners().size()] = new Coordinate(o.getCorners().get(0).getX(), o.getCorners().get(0).getY());
-						GeometryFactory fact = new GeometryFactory();
-						LinearRing ring = new GeometryFactory().createLinearRing(coordinates);
-						Polygon poly = new Polygon(ring, null, fact);
-						Coordinate[] tankPositionArray = {new Coordinate(t.getX(), t.getY())};
-						Point tankPoint = new Point(new CoordinateArraySequence(tankPositionArray), fact);
-						double objAngle = Math.atan2(poly.getCentroid().getY() - t.getY(), poly.getCentroid().getX() - t.getX());
-						Coordinate nearestPoint = DistanceOp.closestPoints(poly, tankPoint)[0];
-						double obstacleRadius = Math.sqrt(Math.pow(poly.getCentroid().getX() - nearestPoint.x, 2) +
-														  Math.pow(poly.getCentroid().getY() - nearestPoint.y, 2)); 
-						double obDist = Math.sqrt(Math.pow(poly.getCentroid().getX() - tankPoint.getX(), 2) +
-								  				  Math.pow(poly.getCentroid().getY() - tankPoint.getY(), 2)); 
-						if (obstacleRadius <= obDist && obDist <= obstacleSpread + obstacleRadius) {
-							double beta = 8;
-							double gamma = 3;
-							
-							//This gives a repulsive potential field for obstacles
-							double deltaXRepel = - (obstacleSpread + obstacleRadius - obDist) * Math.cos(objAngle);
-							double deltaYRepel = - (obstacleSpread + obstacleRadius - obDist) * Math.sin(objAngle);
-							
-							deltaX += beta * deltaXRepel;
-							deltaY += beta * deltaYRepel;
-							
-							// This is to give a tangential potential field causing the tanks to be slightly
-							// inclined to going in a clockwise direction around an object.
-							double deltaXTan = deltaYRepel;
-							double deltaYTan = - deltaXRepel;
-							
-							deltaX += gamma * deltaXTan;
-							deltaY += gamma * deltaYTan;
+					int obstacleSpread = 40;
+					for(int x = 0; x < worldSize; x++) {
+						for(int y = 0; y < worldSize; y++) {
+							if(map[x][y] > .95) {
+								double obstacleRadius = 1;
+								int pointX = x - halfWorldSize;
+								int pointY = y - halfWorldSize;
+								
+								double obDist = Math.sqrt(Math.pow(pointX - t.getX(), 2) +
+										  				  Math.pow(pointY - t.getY(), 2));
+								double objAngle = Math.atan2(pointY - t.getY(), pointX - t.getX());
+								if (obstacleRadius <= obDist && obDist <= obstacleSpread + obstacleRadius) {
+									double beta = .01;
+									double gamma = .015;
+									
+									//This gives a repulsive potential field for obstacles
+									double deltaXRepel = - (obstacleSpread + obstacleRadius - obDist) * Math.cos(objAngle);
+									double deltaYRepel = - (obstacleSpread + obstacleRadius - obDist) * Math.sin(objAngle);
+									
+									deltaX += beta * deltaXRepel;
+									deltaY += beta * deltaYRepel;
+									
+									// This is to give a tangential potential field causing the tanks to be slightly
+									// inclined to going in a clockwise direction around an object.
+									double deltaXTan = deltaYRepel;
+									double deltaYTan = - deltaXRepel;
+									
+									deltaX += gamma * deltaXTan;
+									deltaY += gamma * deltaYTan;
+								}
+							}
 						}
 					}
-					*/
 					
 					double angleDifference = Angle.toDegrees(Angle.normalize(t.getAngle() - Math.atan2(deltaY, deltaX)));
 					
@@ -136,14 +165,52 @@ public class SearchAgent extends Agent {
 			bzrc.doBulkCommands(commands);
 			Date end = new Date();
 			System.out.println("Loop time: " + (end.getTime() - start.getTime()));
-			printMap();
+			
+			if(iterations % 2 == 0) {
+				printMap();
+			}
 		}
+	}
+	
+	private static void updateMap(Occgrid grid) {
+		float falseAlarm = 1 - trueNegative;
+		
+		for(int x = 0; x < grid.getHeight(); x++) {
+			for(int y = 0; y < grid.getWidth(); y++) {
+				int mapX = halfWorldSize + grid.getX() + x;
+				int mapY = halfWorldSize + grid.getY() + y;
+				int val = grid.getGrid()[x][y];
+				
+				if(val == 1) {
+					float occ = truePositive * map[mapX][mapY];
+					float unocc = falseAlarm * (1 - map[mapX][mapY]);
+					
+					map[mapX][mapY] = occ / (occ + unocc);
+				} else {
+					float occ = (1 - truePositive) * map[mapX][mapY];
+					float unocc = trueNegative * (1 - map[mapX][mapY]);
+					
+					map[mapX][mapY] = occ / (occ + unocc);
+				}
+			}
+		}
+	}
+	
+	private static void createMap() {
+		JFrame frame = new JFrame("Create a JPanel");
+		canvas = new MapCanvas(worldSize, worldSize);
+		frame.add(canvas);
+		frame.pack();
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setSize(worldSize, worldSize);
+		frame.setResizable(false);
+		frame.setVisible(true);
 	}
 	
 	private static void printMap() throws IOException {
 		for(int i = 0; i < map.length; i++) {
 			for(int j = 0; j < map.length; j++) {
-				canvas.colorPixel(i, j, map[i][j]);
+				canvas.colorPixel(i, worldSize - j - 1, map[i][j]);
 			}
 		}
 		canvas.redraw();
