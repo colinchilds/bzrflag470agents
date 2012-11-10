@@ -1,77 +1,73 @@
 import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Date;
 
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
 import com.vividsolutions.jts.algorithm.Angle;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LinearRing;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.geom.impl.CoordinateArraySequence;
-import com.vividsolutions.jts.operation.distance.DistanceOp;
 
 
-public class ReactiveAgent extends Agent {
+public class SearchAgent extends Agent {
 
+	private static float[][] map;
+	
+	private static MapCanvas canvas;
+	
 	public static void main(String[] args) throws Exception {
 		connect(args);
+		
+		JFrame frame = new JFrame("Create a JPanel");
+		canvas = new MapCanvas(800, 800);
+		frame.add(canvas);
+		frame.pack();
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setSize(800, 800);
+		frame.setResizable(false);
+		frame.setVisible(true);
 		
 		begin();
 	}
 
 	private static void begin() throws Exception {
 		bzrc.updateConstants();
-		String ourColor = bzrc.constants.get("team");
+		int worldSize = Integer.parseInt(bzrc.constants.get("worldsize"));
+		
+		map = new float[worldSize][worldSize];
+//		for(int i = 0; i < worldSize; i++) {
+//			for(int j = 0; j < worldSize; j++) {
+//				map[i][j] = (float)Math.random();
+//			}
+//		}
 		
 		while(true) {
+			for(int i = 0; i < worldSize; i++) {
+				for(int j = 0; j < worldSize; j++) {
+					map[i][j] = (float)Math.random();
+				}
+			}
 			Date start = new Date();
-			bzrc.updateAll();
+			//bzrc.updateAll();
+			bzrc.updateMyTanks();
 			
 			ArrayList<Command> commands = new ArrayList<Command>();
 			
-			for(int j = 0; j < bzrc.myTanks.size(); j++) {
+			//for(int j = 0; j < bzrc.myTanks.size(); j++) {
+			for(int j = 0; j < 1; j++) {
 				MyTank t = bzrc.myTanks.get(j+"");
+				Occgrid grid = bzrc.getOccgrid(t.getId());
+				
 				Point2D.Float goal = null;
-				if(t.flag != null) {
-					goal = bzrc.teams.get(ourColor).getBaseCenter();
-				} else {
-					double minDist = Double.MAX_VALUE;
-					for(int i = 0; i < bzrc.flags.size(); i++) {
-						Flag f = bzrc.flags.get(i);
-						
-						//If it is our flag in our possession,
-						//or another flag in our possession, don't go for it
-						if((f.getColor().equals(ourColor) && f.getPossessingColor() == null) || ourColor.equals(f.getPossessingColor())) {
-							continue;
-						}
-						
-						double dist = f.getPosition().distance(t.getX(), t.getY());
-						if(dist < minDist) {
-							minDist = dist;
-							goal = f.getPosition();
-						}
-					}
-					
-					if(goal == null) {
-						for(int i = 0; i < bzrc.otherTanks.size(); i++) {
-							OtherTank o = bzrc.otherTanks.get(i);
-							
-							double dist = o.getPosition().distance(t.getX(), t.getY());
-							if(dist < minDist) {
-								minDist = dist;
-								goal = o.getPosition();
-							}
-						}
-					}
-					
-					//if all else fails... go back home for now.
-					//this will probably need to change when the entire field is not visible
-					//ie. go explore somewhere
-					if(goal == null) {
-						goal = bzrc.teams.get(ourColor).getBaseCenter();
-					}
-				}
+				float x = (float)(Math.random() * (worldSize/2) * (Math.random() > .5 ? -1 : 1));
+				float y = (float)(Math.random() * (worldSize/2) * (Math.random() > .5 ? -1 : 1));
+				goal = new Point2D.Float(x, y);
 				
 				double distance = goal.distance(t.getX(), t.getY());
 				double radius = Double.parseDouble(bzrc.constants.get("flagradius"));
@@ -82,6 +78,7 @@ public class ReactiveAgent extends Agent {
 					double deltaX = (distance - radius) * Math.cos(angle);
 					double deltaY = (distance - radius) * Math.sin(angle);
 					
+					/*
 					//determine effect of obstacles on path
 					int obstacleSpread = 70;
 					for(int i = 0; i < bzrc.obstacles.size(); i++) {
@@ -122,49 +119,33 @@ public class ReactiveAgent extends Agent {
 							deltaY += gamma * deltaYTan;
 						}
 					}
-					
-					
-//					double deltaAngle = toDegrees(Math.atan2(deltaY, deltaX));
-//					double tankAngle = toDegrees(t.getAngle());
-//					double angleDifference = tankAngle - deltaAngle;
-//					if(angleDifference > 180) {
-//						angleDifference = (tankAngle - 360) - deltaAngle;
-//					} if(angleDifference == 0) {
-//						angleDifference = .0001;
-//					}
+					*/
 					
 					double angleDifference = Angle.toDegrees(Angle.normalize(t.getAngle() - Math.atan2(deltaY, deltaX)));
 					
-					//TODO: adjust to not move until a certain degree
 					if(Math.abs(angleDifference) > 60) {
-						//bzrc.speed(t.getId(), .1f);
 						commands.add(new Command(Command.SPEED, t.getId(), .1f));
 					} else {
-						//float speed = (float) (Math.min(3/Math.abs(angleDifference), Math.min(distance/20, 1)));
-						//bzrc.speed(t.getId(), (float)Math.min(distance/20, 1));
 						commands.add(new Command(Command.SPEED, t.getId(), (float)Math.min(distance/75, 1)));
 					}
 					
-					//bzrc.angvel(t.getId(), ((float)-(angleDifference/180)));
 					commands.add(new Command(Command.ANGVEL, t.getId(), (float)-(angleDifference/180)));
-					if(distance < 150 || t.flag != null) {
-						//bzrc.shoot(t.getId());
-						commands.add(new Command(Command.SHOOT, t.getId()));
-					}
 				}
 			}
 			
 			bzrc.doBulkCommands(commands);
 			Date end = new Date();
 			System.out.println("Loop time: " + (end.getTime() - start.getTime()));
+			printMap();
 		}
 	}
 	
-	private static double toDegrees(double radian) {
-    	double degree = Math.toDegrees(radian);
-    	if(degree < 0) {
-    		degree += 360;
-    	}
-    	return degree;
-    }
+	private static void printMap() throws IOException {
+		for(int i = 0; i < map.length; i++) {
+			for(int j = 0; j < map.length; j++) {
+				canvas.colorPixel(i, j, map[i][j]);
+			}
+		}
+		canvas.redraw();
+	}
 }

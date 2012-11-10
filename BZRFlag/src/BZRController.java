@@ -79,6 +79,10 @@ public class BZRController {
 	private ArrayList<String> readList() {
 		ArrayList<String> result = new ArrayList<String>();
 		String response = readLine();
+		if("fail".equals(response)) {
+			System.err.println("Command returned error");
+			return result;
+		}
 		if(!"begin".equals(response)) {
 			System.err.println("Trying to read list that did not return with a 'begin'");
 			return result;
@@ -311,6 +315,34 @@ public class BZRController {
 		updateShots();
 		updateMyTanks();
 		updateOtherTanks();
+	}
+	
+	public Occgrid getOccgrid(String id) throws Exception {
+		write("occgrid " + id);
+		readAck();
+		ArrayList<String> list = readList();
+		
+		//get coordinates
+		String at = list.remove(0);
+		at = at.replace("at ", "");
+		int x = Integer.parseInt(at.split(",")[0]);
+		int y = Integer.parseInt(at.split(",")[1]);
+		
+		//get size of grid
+		String size = list.remove(0);
+		size = size.replace("size ", "");
+		int height = Integer.parseInt(size.split("x")[0]);
+		int width = Integer.parseInt(size.split("x")[1]);
+		
+		int[][] grid = new int[height][width];
+		for(int i = 0; i < list.size(); i++) {
+			String s = list.get(i);
+			for(int j = 0; j < s.length(); j++) {
+				grid[i][j] = Integer.parseInt(s.charAt(j)+"");
+			}
+		}
+		
+		return new Occgrid(x, y, width, height, grid);
 	}
 	
 }
