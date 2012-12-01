@@ -4,5 +4,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry kind="lib" path="lib/NetComponents.jar"/>
 	<classpathentry kind="lib" path="lib/jts-1.8.jar"/>
+	<classpathentry kind="lib" path="/Users/michaelchilds/Dropbox/Colin&apos;s/CS470/bzrflag470agents/BZRFlag/lib/ejml-0.20.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
