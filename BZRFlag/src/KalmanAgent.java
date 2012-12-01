@@ -123,11 +123,10 @@ public class KalmanAgent extends Agent {
 			double deltaX = Math.cos(angle);
 			double deltaY = Math.sin(angle);
 			double angleDifference = Angle.toDegrees(Angle.normalize(t.getAngle() - Math.atan2(deltaY, deltaX)));
-			int timeToTurn = Math.abs((int)(8000 * (angleDifference/30)));
+			//int timeToTurn = Math.abs((int)(8000 * (angleDifference/30)));
 			
-			boolean shouldStop = false;
 			int iterations = 1;
-			while(shouldStop) {
+			while(true) {
 				future = F.mult(future);
 				futureX = (int)future.getMatrix().data[0];
 				futureY = (int)future.getMatrix().data[3];
@@ -137,11 +136,12 @@ public class KalmanAgent extends Agent {
 				deltaX = Math.cos(angle);
 				deltaY = Math.sin(angle);
 				angleDifference = Angle.toDegrees(Angle.normalize(t.getAngle() - Math.atan2(deltaY, deltaX)));
-				timeToTurn = Math.abs((int)(8000 * (angleDifference/30)));
+				//timeToTurn = Math.abs((int)(8000 * (angleDifference/30)));
 				
 				double distance = t.getPosition().distance(futureX, futureY);
 				double time = (distance / shotSpeed) * 1000;
-				if(time < (iterations++ * .00005)) {
+				if(time < (iterations++ * 50)) {
+					System.out.println(iterations);
 					break;
 				}
 			}
@@ -223,7 +223,7 @@ public class KalmanAgent extends Agent {
 		frame.add(canvas);
 		frame.pack();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(worldSize + 100, worldSize + 100);
+		frame.setSize(worldSize + 5, worldSize + 5);
 		frame.setResizable(false);
 		frame.setVisible(true);
 		
