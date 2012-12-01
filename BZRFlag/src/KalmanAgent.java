@@ -1,9 +1,14 @@
+import java.awt.geom.Point2D;
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.JFrame;
 
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.simple.SimpleMatrix;
+
+import com.vividsolutions.jts.algorithm.Angle;
 
 
 public class KalmanAgent extends Agent {
@@ -21,8 +26,14 @@ public class KalmanAgent extends Agent {
     private static SimpleMatrix ST;
     
     private static float[][] map;
-    private static MapCanvas canvas;
-    private static int worldSize = 800;
+    private static MapTopologyCanvas canvas;
+    private static int worldSize = 400;
+    private static int shotSpeed = 100;
+    
+    private static int px = 0;
+    private static int py = 0;
+    private static int rx = 0;
+    private static int ry = 0;
     
 	public static void main(String[] args) throws Exception {
 		connect(args);
@@ -34,7 +45,7 @@ public class KalmanAgent extends Agent {
 	}
 
 	private static void initMatrices() {
-		double dt = 0.5;
+		double dt = 0.05;
 		double c = 0.1;
 		double f[][] = {{1, dt, Math.pow(dt, 2)/2, 0, 0, 0},
 						{0, 1, dt, 0, 0, 0},
@@ -79,25 +90,105 @@ public class KalmanAgent extends Agent {
 		SimpleMatrix K = (predictedState.mult(HT)).mult((((H.mult(predictedState)).mult(HT)).plus(SZ)).invert());
 		
 		OtherTank t = bzrc.otherTanks.get(0);
-		double zt[][] = {{t.getX()}, {0}, {0}, {t.getY()}, {0}, {0}};
-		SimpleMatrix ZT = new SimpleMatrix(new DenseMatrix64F(zt));
+		if(t.isAlive()) {
+			double zt[][] = {{t.getX()}, {t.getY()}};
+			SimpleMatrix ZT = new SimpleMatrix(new DenseMatrix64F(zt));
+			
+			map[px][py] = 0;
+			
+			px = Math.max(Math.min((int)XT.getMatrix().data[0] + 200, 399), 0);
+			py = Math.max(Math.min((int)XT.getMatrix().data[3] + 200, 399), 0);
+			
+			XT = F.mult(XT).plus(K.mult(ZT.minus((H.mult(F).mult(XT)))));
+			map[px][py] = 1;
+			
+			ST = predictedState.minus(K.mult(H).mult(predictedState));
+			rx = (int)ST.getMatrix().data[0];
+			ry = (int)ST.getMatrix().data[21];
+		}
+	}
+	
+	private static void turnAndShoot() throws Exception {
+		OtherTank ot = bzrc.otherTanks.get(0);
+		MyTank t = bzrc.myTanks.get("0");
 		
-		XT = F.mult(XT).plus(K.mult(ZT.minus((H.mult(F).mult(XT)))));
-		
-		ST = predictedState.minus(K.mult(H).mult(predictedState));
+		if(ot.isAlive()) {
+			
+			SimpleMatrix future = XT;
+			int futureX = (int)future.getMatrix().data[0];
+			int futureY = (int)future.getMatrix().data[3];
+			
+			Point2D otherTank = new Point2D.Double(futureX, futureY);
+			double angle = Math.atan2(otherTank.getY() - t.y, otherTank.getX() - t.x);
+			double deltaX = Math.cos(angle);
+			double deltaY = Math.sin(angle);
+			double angleDifference = Angle.toDegrees(Angle.normalize(t.getAngle() - Math.atan2(deltaY, deltaX)));
+			int timeToTurn = Math.abs((int)(8000 * (angleDifference/30)));
+			
+			boolean shouldStop = false;
+			int iterations = 1;
+			while(shouldStop) {
+				future = F.mult(future);
+				futureX = (int)future.getMatrix().data[0];
+				futureY = (int)future.getMatrix().data[3];
+				
+				otherTank = new Point2D.Double(futureX, futureY);
+				angle = Math.atan2(otherTank.getY() - t.y, otherTank.getX() - t.x);
+				deltaX = Math.cos(angle);
+				deltaY = Math.sin(angle);
+				angleDifference = Angle.toDegrees(Angle.normalize(t.getAngle() - Math.atan2(deltaY, deltaX)));
+				timeToTurn = Math.abs((int)(8000 * (angleDifference/30)));
+				
+				double distance = t.getPosition().distance(futureX, futureY);
+				double time = (distance / shotSpeed) * 1000;
+				if(time < (iterations++ * .00005)) {
+					break;
+				}
+			}
+
+			canvas.drawCircle(futureX+200, 200-futureY, rx, ry, .5);
+			bzrc.angvel("0", (float)-(angleDifference/30));
+			if (Math.abs(angleDifference) < .5) {
+				bzrc.shoot("0");
+			}
+			
+		} else {
+			bzrc.angvel("0", 0);
+		}
 	}
 	
 	private static void begin() throws Exception {
-		int iteration = 0;
-		while(true) {
-			bzrc.updateMyTanks();
-			bzrc.updateOtherTanks();
-			update();
+		bzrc.updateConstants();
+		shotSpeed = Integer.parseInt(bzrc.constants.get("shotspeed"));
+		
+		Timer t = new Timer();
+		t.scheduleAtFixedRate(new TimerTask() {
 			
-			if(iteration++ % 2 == 0) {
-				printMap();
+			@Override
+			public void run() {
+				try {
+					bzrc.updateMyTanks();
+					bzrc.updateOtherTanks();
+					update();
+
+					canvas.clearCircles();
+					turnAndShoot();
+					printMap();
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
 			}
-		}
+		}, 0, 50);
+//		while(true) {
+//			Date start = new Date();
+//			
+//			
+//			
+//			Date end = new Date();
+//			System.out.println("Loop time: " + (end.getTime() - start.getTime()));
+//		}
 	}
 	
 	private static void updateMap() {
@@ -128,21 +219,31 @@ public class KalmanAgent extends Agent {
 	
 	private static void createMap() {
 		JFrame frame = new JFrame("Create a JPanel");
-		canvas = new MapCanvas(worldSize, worldSize);
+		canvas = new MapTopologyCanvas(worldSize, worldSize);
 		frame.add(canvas);
 		frame.pack();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(worldSize, worldSize);
+		frame.setSize(worldSize + 100, worldSize + 100);
 		frame.setResizable(false);
 		frame.setVisible(true);
+		
+		map = new float[worldSize][worldSize];
+		for(int i = 0; i < worldSize; i++) {
+			for(int j = 0; j < worldSize; j++) {
+				map[i][j] = 0;
+			}
+		}
 	}
 	
 	private static void printMap() throws IOException {
-		for(int i = 0; i < map.length; i++) {
-			for(int j = 0; j < map.length; j++) {
-				canvas.colorPixel(i, worldSize - j - 1, map[i][j]);
-			}
-		}
+//		for(int i = 0; i < map.length; i++) {
+//			for(int j = 0; j < map.length; j++) {
+//				canvas.colorPixel(i, worldSize - j - 1, map[i][j]);
+//			}
+//		}
+		
+		canvas.drawCircle(px, 400-py, rx, ry, 1);
+		
 		canvas.redraw();
 	}
 	
