@@ -1,3 +1,5 @@
+//./bin/bzrflag --default-tanks=1 --purple-tanks=0 --red-tanks=0 --world=./maps/noObstacles.bzw --world-size=400 --green-port=60770 --blue-port=60982 --respawn-time=1 --default-posnoise=5
+
 import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.util.Timer;
@@ -46,42 +48,42 @@ public class KalmanAgent extends Agent {
 
 	private static void initMatrices() {
 		double dt = 0.05;
-		double c = 0.1;
-		double f[][] = {{1, dt, Math.pow(dt, 2)/2, 0, 0, 0},
-						{0, 1, dt, 0, 0, 0},
-						{0, -c, 1, 0, 0, 0},
-						{0, 0, 0, 1, dt, Math.pow(dt, 2)/2},
-						{0, 0, 0, 0, 1, dt},
-						{0, 0, 0, 0, -c, 1}};
+		double c = 0;
+		double f[][] = {{1.0, dt, Math.pow(dt, 2)/2.0, 0.0, 0.0, 0.0},
+						{0.0, 1.0, dt, 0.0, 0.0, 0.0},
+						{0.0, -c, 1, 0.0, 0.0, 0.0},
+						{0.0, 0.0, 0.0, 1.0, dt, Math.pow(dt, 2)/2.0},
+						{0.0, 0.0, 0.0, 0.0, 1.0, dt},
+						{0.0, 0.0, 0.0, 0.0, -c, 1.0}};
 		F = new SimpleMatrix(new DenseMatrix64F(f));
 		FT = F.transpose();
 		
-		double h[][] = {{1, 0, 0, 0, 0, 0},
-						{0, 0, 0, 1, 0, 0}};
+		double h[][] = {{1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+						{0.0, 0.0, 0.0, 1.0, 0.0, 0.0}};
 		H = new SimpleMatrix(new DenseMatrix64F(h));
 		HT = H.transpose();
 		
-		double sz[][] = {{25, 0},
-						 {0, 25}};
+		double sz[][] = {{25.0, 0.0},
+						 {0.0, 25.0}};
 		SZ = new SimpleMatrix(new DenseMatrix64F(sz));
 		
-		double sx[][] = {{0.1, 0, 0, 0, 0, 0},
-						 {0, 0.1, 0, 0, 0, 0},
-						 {0, 0, 100, 0, 0, 0},
-						 {0, 0, 0, 0.1, 0, 0},
-						 {0, 0, 0, 0, 0.1, 0},
-						 {0, 0, 0, 0, 0, 100}};
+		double sx[][] = {{0.1, 0.0, 0.0, 0.0, 0.0, 0.0},
+						 {0.0, 0.1, 0.0, 0.0, 0.0, 0.0},
+						 {0.0, 0.0, 0.5, 0.0, 0.0, 0.0},
+						 {0.0, 0.0, 0.0, 0.1, 0.0, 0.0},
+						 {0.0, 0.0, 0.0, 0.0, 0.1, 0.0},
+						 {0.0, 0.0, 0.0, 0.0, 0.0, 0.5}};
 		SX = new SimpleMatrix(new DenseMatrix64F(sx));
 		
-		double xt[][] = {{0}, {0}, {0}, {0}, {0}, {0}};
+		double xt[][] = {{0.0}, {0.0}, {0.0}, {0.0}, {0.0}, {0.0}};
 		XT = new SimpleMatrix(new DenseMatrix64F(xt));
 		
-		double st[][] = {{100, 0, 0, 0, 0, 0},
-				 		 {0, 0.1, 0, 0, 0, 0},
-				 		 {0, 0, 0.1, 0, 0, 0},
-				 		 {0, 0, 0, 100, 0, 0},
-				 		 {0, 0, 0, 0, 0.1, 0},
-				 		 {0, 0, 0, 0, 0, 0.1}};
+		double st[][] = {{100.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+				 		 {0.0, 0.1, 0.0, 0.0, 0.0, 0.0},
+				 		 {0.0, 0.0, 0.1, 0.0, 0.0, 0.0},
+				 		 {0.0, 0.0, 0.0, 100.0, 0.0, 0.0},
+				 		 {0.0, 0.0, 0.0, 0.0, 0.1, 0.0},
+				 		 {0.0, 0.0, 0.0, 0.0, 0.0, 0.1}};
 		ST = new SimpleMatrix(new DenseMatrix64F(st));
 	}
 	
@@ -123,7 +125,6 @@ public class KalmanAgent extends Agent {
 			double deltaX = Math.cos(angle);
 			double deltaY = Math.sin(angle);
 			double angleDifference = Angle.toDegrees(Angle.normalize(t.getAngle() - Math.atan2(deltaY, deltaX)));
-			//int timeToTurn = Math.abs((int)(8000 * (angleDifference/30)));
 			
 			int iterations = 1;
 			while(true) {
@@ -136,17 +137,16 @@ public class KalmanAgent extends Agent {
 				deltaX = Math.cos(angle);
 				deltaY = Math.sin(angle);
 				angleDifference = Angle.toDegrees(Angle.normalize(t.getAngle() - Math.atan2(deltaY, deltaX)));
-				//timeToTurn = Math.abs((int)(8000 * (angleDifference/30)));
 				
 				double distance = t.getPosition().distance(futureX, futureY);
-				double time = (distance / shotSpeed) * 1000;
-				if(time < (iterations++ * 50)) {
+				double time = .9 * (distance / shotSpeed) * 1000;
+				if(time < (iterations++ * 50) || iterations > 100) {
 					System.out.println(iterations);
 					break;
 				}
+				canvas.drawCircle(futureX+200, 200-futureY, rx, ry, .5);
 			}
 
-			canvas.drawCircle(futureX+200, 200-futureY, rx, ry, .5);
 			bzrc.angvel("0", (float)-(angleDifference/30));
 			if (Math.abs(angleDifference) < .5) {
 				bzrc.shoot("0");
@@ -223,7 +223,7 @@ public class KalmanAgent extends Agent {
 		frame.add(canvas);
 		frame.pack();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(worldSize + 5, worldSize + 5);
+		frame.setSize(worldSize + 20, worldSize + 20);
 		frame.setResizable(false);
 		frame.setVisible(true);
 		
