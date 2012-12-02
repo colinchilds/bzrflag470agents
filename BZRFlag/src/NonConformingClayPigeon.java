@@ -17,11 +17,12 @@ public class NonConformingClayPigeon extends Agent {
 			public void run() {
 				try {
 					bzrc.speed("0", (float) Math.random());
+					bzrc.angvel("0", (float) Math.random() * 2 - 1);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
-		}, 0, 1000);
+		}, 0, 2000);
 	}
 }
